@@ -90,7 +90,7 @@ function json_(obj) {
 
 // เรียกฟังก์ชันนี้จาก Apps Script editor หนึ่งครั้ง เพื่อใส่ ID ของ Google Sheets
 function setupSpreadsheet() {
-  const id = "ใส่_SPREADSHEET_ID_ตรงนี้";
+  const id = "1X6SMFlbNYY0JzghfxuTFCqdpYTkCN2N3yky4q1mXJr0";
   if (id === "ใส่_SPREADSHEET_ID_ตรงนี้") {
     throw new Error("แก้ค่า id ใน setupSpreadsheet() ให้เป็น ID ของ Google Sheets ก่อน");
   }
