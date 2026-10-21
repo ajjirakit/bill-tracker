@@ -47,7 +47,8 @@ function render() {
   $("monthNetMoney").textContent = money(sum.netMoney);
   const body = $("historyBody");
   if (!monthRecords.length) {
-    body.innerHTML = '<tr><td colspan="7" class="empty">ยังไม่มีข้อมูลในเดือนนี้</td></tr>';
+    const otherMonths = records.length > 0;
+    body.innerHTML = `<tr><td colspan="7" class="empty">${otherMonths ? `ไม่มีข้อมูลในเดือน ${escapeHtml($("monthFilter").value)} แต่พบข้อมูล ${records.length} รายการในเดือนอื่น กรุณาเลือกเดือนที่ต้องการดู` : 'ยังไม่มีข้อมูลใน Google Sheets กรุณาบันทึกข้อมูลหรือกด “โหลดข้อมูลใหม่”'}</td></tr>`;
     return;
   }
   body.innerHTML = monthRecords.map(r => `<tr>
@@ -84,7 +85,8 @@ async function request(action, payload = {}) {
   }
   if (!apiUrl) throw new Error("กรุณาตั้งค่า Google Apps Script Web App URL ก่อน");
   // ใช้ JSONP เพื่อให้เว็บที่เปิดจาก Live Server เรียก Apps Script ข้ามโดเมนได้
-  const params = new URLSearchParams({action, ...payload, callback:"billTrackerCallback"});
+  const callbackName = "billTrackerCallback_" + Date.now() + "_" + Math.floor(Math.random()*100000);
+  const params = new URLSearchParams({action, ...payload, callback:callbackName});
   const data = await new Promise((resolve, reject) => {
     const script = document.createElement("script");
     const timeout = setTimeout(() => {
@@ -93,10 +95,10 @@ async function request(action, payload = {}) {
     }, 15000);
     function cleanup() {
       clearTimeout(timeout);
-      delete window.billTrackerCallback;
+      delete window[callbackName];
       script.remove();
     }
-    window.billTrackerCallback = (result) => {
+    window[callbackName] = (result) => {
       cleanup();
       resolve(result);
     };
@@ -114,7 +116,8 @@ async function loadRecords() {
   setStatus("กำลังโหลด...");
   try {
     const data = await request("list");
-    records = (Array.isArray(data) ? data : data.records || []).map(normalizeRecord);
+    if (data && data.success === false) throw new Error(data.error || "Google Apps Script ส่งข้อผิดพลาดกลับมา");
+    records = (Array.isArray(data) ? data : (data.records || [])).map(normalizeRecord).filter(r => /^\d{4}-\d{2}-\d{2}$/.test(r.date));
     setStatus(localMode ? "โหมดทดลองในเครื่อง" : "เชื่อมต่อ Google Sheets แล้ว");
     render();
   } catch (err) {
